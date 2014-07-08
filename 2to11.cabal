@@ -1,0 +1,28 @@
+name:           2to11
+version:        0.0.0
+build-type:     Simple
+cabal-version:  >= 1.18
+
+library
+    default-language:   Haskell2010
+    exposed-modules:    Game
+    hs-source-dirs:     library
+    build-depends:      base, vector
+    if flag(documentation)
+        build-depends:  hscolour == 1.20.*
+
+executable 2to11
+    build-depends:      base, 2to11
+    default-language:   Haskell2010
+    hs-source-dirs:     executable
+    main-is:            Main.hs
+
+test-suite hspec
+    build-depends:      base, vector, 2to11, hspec, QuickCheck
+    default-language:   Haskell2010
+    hs-source-dirs:     test
+    main-is:            Spec.hs
+    type:               exitcode-stdio-1.0
+
+flag documentation
+    default:            False

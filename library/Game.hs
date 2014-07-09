@@ -1,11 +1,17 @@
 -- library/Game.hs
 -- | The game logic for 2048.
 module Game (
-      Field (..)
+      Direction (..)
+    , Field (..)
+    , Position
     , State
-    , rot90
+    , Value
+    , canMove
+    , canMoveAny
+    , dimensions
+    , free
     , move
-    , compact
+    , place
     ) where
 
 import Control.Arrow (first)
@@ -44,10 +50,14 @@ place :: Position   -- ^ The position of the newly placed number
 place (r, c) val = first (Field . place' . unField) where
     place' vec = vec V.// [(r, vec V.! r V.// [(c, val)])]
 
--- | Can the player make a move?
-canMove :: Field -> Bool
-canMove field = any ((/= 0) . score) [R, U, L, D] where
-    score dir = snd $ move dir (field, 0)
+-- | Can the player move in the given direction?
+canMove :: Direction -> Field -> Bool
+canMove dir field = 0 /= score where
+    score = snd $ move dir (field, 0)
+
+-- | Can the player make a move at all?
+canMoveAny :: Field -> Bool
+canMoveAny field = any (flip canMove field) [R, U, L, D]
 
 free :: Position -> Field -> Bool
 free (r, c) = (== 0) . (\vec -> (vec V.! r) V.! c) . unField

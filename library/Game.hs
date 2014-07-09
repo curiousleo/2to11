@@ -6,10 +6,15 @@ module Game (
     , Position
     , State
     , Value
+
     , canMove
-    , canMoveAny
+    , possibleMoves
+
     , dimensions
+
     , free
+    , freePositions
+
     , move
     , place
     ) where
@@ -17,6 +22,7 @@ module Game (
 import Control.Arrow (first)
 
 import qualified Data.Vector as V
+import System.Random (getStdRandom, randomR)
 
 -- | Models the 2048 game field as a vector of int vectors.
 newtype Field = Field { unField :: V.Vector (V.Vector Value) }
@@ -45,22 +51,41 @@ move D = first rot270 . move' . first rot90
 -- | Computer places a 2 or 4 on a free space.
 place :: Position   -- ^ The position of the newly placed number
       -> Value      -- ^ What value to place
-      -> State      -- ^ The current state
-      -> State      -- ^ The next state
-place (r, c) val = first (Field . place' . unField) where
+      -> Field      -- ^ The current state
+      -> Field      -- ^ The next state
+place (r, c) val = Field . place' . unField where
     place' vec = vec V.// [(r, vec V.! r V.// [(c, val)])]
+
+placeRandom :: Field -> IO Field
+placeRandom field = do
+    pos <- choose $ freePositions field
+    val <- choose [1, 2]
+    return $ place pos val field
+
+choose :: [a] -> IO a
+choose xs = do
+    let range = (0, length xs - 1)
+    i <- getStdRandom $ randomR range
+    return $ xs !! i
 
 -- | Can the player move in the given direction?
 canMove :: Direction -> Field -> Bool
 canMove dir field = 0 /= score where
     score = snd $ move dir (field, 0)
 
--- | Can the player make a move at all?
-canMoveAny :: Field -> Bool
-canMoveAny field = any (flip canMove field) [R, U, L, D]
+-- | Which moves are possible?
+possibleMoves :: Field -> [Direction]
+possibleMoves field = filter (flip canMove field) [R, U, L, D]
 
+-- | Can the computer put a new number at the given position?
 free :: Position -> Field -> Bool
 free (r, c) = (== 0) . (\vec -> (vec V.! r) V.! c) . unField
+
+-- | Which positions are still free?
+freePositions :: Field -> [Position]
+freePositions field = filter (flip free field) positions where
+    positions = [ (i,j) | i <- [0 .. r-1], j <- [0 .. c-1] ]
+    (r, c) = dimensions field
 
 move' :: State -> State
 move' (field, score) = (Field vec', score + V.sum scores) where

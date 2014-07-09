@@ -110,7 +110,9 @@ example = Field $ V.fromList (map V.fromList m) where
          [1, 1, 2, 2, 2]]
 
 instance Show Field where
-    show = V.foldl (\s -> \v -> s ++ ('\n' : (showRow v))) "" . unField where
-        showRow = concat . V.toList . V.map showNum
-        showNum 0 = replicate 5 ' ' ++ "0"
-        showNum x = let s = show (2^x) in (replicate (6 - length s) ' ') ++ s
+    show = showField
+
+showField = V.foldl (\s -> \v -> s ++ ('\n' : (showRow v))) "" . unField where
+    showRow = concat . V.toList . V.map showNum
+    showNum 0 = replicate 5 ' ' ++ "0"
+    showNum x = let s = show (2^x) in (replicate (6 - length s) ' ') ++ s

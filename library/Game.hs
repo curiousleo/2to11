@@ -6,7 +6,6 @@ module Game (
     , rot90
     , move
     , compact
-    , combine
     ) where
 
 import Control.Arrow (first)
@@ -25,54 +24,46 @@ type Position = (Int, Int)
 type State = (Field, Int)
 
 -- | A player's move.
-data Direction = U | R | D | L
+data Direction = R | U | L | D
     deriving (Show, Eq)
 
 -- | Player move
 move :: Direction   -- ^ The direction of the move
      -> State       -- ^ The current state
      -> State       -- ^ The next state
-move L = move'
-move D = first rot90  . move' . first rot270
-move R = first rot180 . move' . first rot180
-move U = first rot270 . move' . first rot90
+move R = move'
+move U = first rot90  . move' . first rot270
+move L = first rot180 . move' . first rot180
+move D = first rot270 . move' . first rot90
 
 move' :: State -> State
 move' (field, score) = (Field vec', score + V.sum scores) where
     (_, w) = dimensions field
-    combined = V.map (first (restore w) . combine . compact) (unField field)
+    combined = V.map (first (restore w) . compact) (unField field)
     (vec', scores) = V.unzip combined
 
 rot90, rot180, rot270 :: Field -> Field
-rot90 field
-    | V.null (unField field) = field
-    | otherwise              = Field rot
-    where
-        rot = V.generate w (\i -> V.generate h (\j -> (vec V.! j) V.! (w-i-1)))
-        vec = unField field
-        h = V.length vec
-        w = V.length (vec V.! 0)
+rot90 field = Field rotated where
+    rotated = V.generate w (\i -> V.generate h (\j -> rot90' i j))
+    rot90' i j = ((unField field) V.! j) V.! (w-i-1)
+    (h, w) = dimensions field
 rot180 = rot90 . rot90
 rot270 = rot90 . rot90 . rot90
 
-compact :: V.Vector Value -> V.Vector Value
-compact = V.filter (/= 0)
-
-combine :: V.Vector Value -> (V.Vector Value, Value)
-combine vec = (V.fromList l, score) where
-    (l, score) = combine' $ V.toList vec
-    combine' []       = ([], 0)
-    combine' [x]      = ([x], 0)
-    combine' (x:y:zs)
-        | x == y    = (xy : zs', 2^xy + a)
-        | otherwise = (x : yzs', b)
+compact :: V.Vector Value -> (V.Vector Value, Value)
+compact = first (V.fromList . dropWhile (== 0)) . V.foldr f ([], 0) where
+    f 0 acc         = acc
+    f y ([], s)     = ([y], s)
+    f y ((0:xs), s) = ((y:xs), s)
+    f y (l@(x:xs), s)
+        | x == y    = ((0:x':xs), s')
+        | otherwise = ((y:l), s)
         where
-            xy = x + 1
-            (zs', a) = combine' zs
-            (yzs', b) = combine' (y:zs)
+            x' = succ x
+            s' = s + 2^x'
 
 restore :: Int -> V.Vector Value -> V.Vector Value
-restore n vec = vec V.++ V.replicate (n - V.length vec) 0
+restore n vec = V.replicate (n - V.length vec) 0 V.++ vec
 
 dimensions :: Field -> (Int, Int)
 dimensions field

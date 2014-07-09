@@ -7,6 +7,8 @@ module Game (
     , State
     , Value
 
+    , playComputer
+
     , canMove
     , possibleMoves
 
@@ -57,10 +59,19 @@ place (r, c) val = Field . place' . unField where
     place' vec = vec V.// [(r, vec V.! r V.// [(c, val)])]
 
 placeRandom :: Field -> IO Field
-placeRandom field = do
-    pos <- choose $ freePositions field
-    val <- choose [1, 2]
-    return $ place pos val field
+placeRandom field
+    | null ps   = return field
+    | otherwise = do
+        pos <- choose $ ps
+        val <- choose [1, 2]
+        return $ place pos val field
+    where
+        ps = freePositions field
+
+playComputer :: State -> IO State
+playComputer (field, score) = do
+    field' <- placeRandom field
+    return (field', score)
 
 choose :: [a] -> IO a
 choose xs = do

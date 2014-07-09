@@ -1,7 +1,7 @@
 -- library/Game.hs
 -- | The game logic for 2048.
 module Game (
-      Field
+      Field (..)
     , State
     , move
     , transpose
@@ -31,26 +31,30 @@ data Direction = U | R | D | L
 move :: Direction   -- ^ The direction of the move
      -> State       -- ^ The current state
      -> State       -- ^ The next state
-move U = first Field . move' . first unField
-move R = first (Field . transpose) . move' . first (transpose . unField)
-move D = first (Field . mirrorH) . move' . first (mirrorH . unField)
-move L = first (Field . transpose . mirrorH) . move' . first (mirrorH . transpose. unField)
+move U = move'
+move R = first transpose . move' . first transpose
+move D = first mirrorH . move' . first mirrorH
+move L = first (transpose . mirrorH) . move' . first (mirrorH . transpose)
 
-move' (field, score) = (field', score + V.sum scores) where
-    state' = V.map (combine . compact) field
-    (field', scores) = V.unzip state'
+move' :: State -> State
+move' (field, score) = (Field vec', score + V.sum scores) where
+    vec = V.map (combine . compact) (unField field)
+    (vec', scores) = V.unzip vec
 
-transpose :: V.Vector (V.Vector Value) -> V.Vector (V.Vector Value)
+transpose :: Field -> Field
 transpose field
-    | V.null field = field
-    | otherwise    = V.generate h (\i -> V.generate w (\j -> (field V.! j) V.! i))
+    | V.null (unField field) = field
+    | otherwise              = Field $ inv
     where
-        w = V.length field
-        h = V.length (field V.! 0)
+        inv = V.generate h (\i -> V.generate w (\j -> (vec V.! j) V.! i))
+        vec = unField field
+        w = V.length vec
+        h = V.length (vec V.! 0)
 
-mirrorH :: V.Vector (V.Vector Value) -> V.Vector (V.Vector Value)
-mirrorH field = V.generate w (\i -> field V.! (w - i - 1)) where
-    w = V.length field
+mirrorH :: Field -> Field
+mirrorH field = Field $ V.generate w (\i -> vec V.! (w - i - 1)) where
+    vec = unField field
+    w = V.length vec
 
 compact :: V.Vector Value -> V.Vector Value
 compact = V.fromList . compact' . V.toList where

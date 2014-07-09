@@ -27,7 +27,7 @@ type State = (Field, Int)
 data Direction = R | U | L | D
     deriving (Show, Eq)
 
--- | Player move
+-- | Player swipes right, up, left, or down.
 move :: Direction   -- ^ The direction of the move
      -> State       -- ^ The current state
      -> State       -- ^ The next state
@@ -35,6 +35,14 @@ move R = move'
 move U = first rot90  . move' . first rot270
 move L = first rot180 . move' . first rot180
 move D = first rot270 . move' . first rot90
+
+-- | Computer places a 2 or 4 on a free space.
+place :: Position   -- ^ The position of the newly placed number
+      -> Value      -- ^ What value to place
+      -> State      -- ^ The current state
+      -> State      -- ^ The next state
+place (r, c) val = first (Field . place' . unField) where
+    place' vec = vec V.// [(r, vec V.! r V.// [(c, val)])]
 
 move' :: State -> State
 move' (field, score) = (Field vec', score + V.sum scores) where

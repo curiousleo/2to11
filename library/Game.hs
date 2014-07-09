@@ -44,6 +44,14 @@ place :: Position   -- ^ The position of the newly placed number
 place (r, c) val = first (Field . place' . unField) where
     place' vec = vec V.// [(r, vec V.! r V.// [(c, val)])]
 
+-- | Can the player make a move?
+canMove :: Field -> Bool
+canMove field = any ((/= 0) . score) [R, U, L, D] where
+    score dir = snd $ move dir (field, 0)
+
+free :: Position -> Field -> Bool
+free (r, c) = (== 0) . (\vec -> (vec V.! r) V.! c) . unField
+
 move' :: State -> State
 move' (field, score) = (Field vec', score + V.sum scores) where
     (_, w) = dimensions field

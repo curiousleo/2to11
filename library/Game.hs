@@ -22,6 +22,9 @@ module Game (
     ) where
 
 import Control.Arrow (first)
+import Control.Monad (mzero)
+import Control.Monad.Trans.Maybe (MaybeT)
+import Control.Monad.Trans.Class (lift)
 
 import qualified Data.Vector as V
 import System.Random (getStdRandom, randomR)
@@ -58,25 +61,22 @@ place :: Position   -- ^ The position of the newly placed number
 place (r, c) val = Field . place' . unField where
     place' vec = vec V.// [(r, vec V.! r V.// [(c, val)])]
 
-placeRandom :: Field -> IO Field
-placeRandom field
-    | null ps   = return field
-    | otherwise = do
-        pos <- choose $ ps
-        val <- choose [1, 2]
-        return $ place pos val field
-    where
-        ps = freePositions field
-
-playComputer :: State -> IO State
+playComputer :: State -> MaybeT IO State
 playComputer (field, score) = do
     field' <- placeRandom field
     return (field', score)
 
-choose :: [a] -> IO a
+placeRandom :: Field -> MaybeT IO Field
+placeRandom field = do
+    pos <- choose $ freePositions field
+    val <- choose [1, 2]
+    return $ place pos val field
+
+choose :: [a] -> MaybeT IO a
+choose [] = mzero
 choose xs = do
     let range = (0, length xs - 1)
-    i <- getStdRandom $ randomR range
+    i <- lift $ getStdRandom $ randomR range
     return $ xs !! i
 
 -- | Can the player move in the given direction?
@@ -148,7 +148,8 @@ example = Field $ V.fromList (map V.fromList m) where
 instance Show Field where
     show = showField
 
+showField :: Field -> String
 showField = V.foldl (\s -> \v -> s ++ ('\n' : (showRow v))) "" . unField where
     showRow = concat . V.toList . V.map showNum
     showNum 0 = replicate 5 ' ' ++ "0"
-    showNum x = let s = show (2^x) in (replicate (6 - length s) ' ') ++ s
+    showNum x = let s = show ((2::Value)^x) in (replicate (6 - length s) ' ') ++ s

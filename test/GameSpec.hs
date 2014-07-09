@@ -5,13 +5,15 @@ import qualified Data.Vector as V
 import Game
 import Test.Hspec
 import Test.Hspec.QuickCheck
-import Test.QuickCheck.Arbitrary (arbitrary, Arbitrary)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary, vector)
 
-instance (Arbitrary a) => Arbitrary (V.Vector a) where
-    arbitrary = fmap V.fromList arbitrary
+instance Arbitrary Field where
+    arbitrary = fmap Field $ fmap (gen l) (vector (l*l)) where
+        gen l xs = V.generate l (\i -> V.generate l (\j -> (xs !! j*5 + i)))
+        l = 5
 
 spec :: Spec
 spec = do
-    describe "transpose" $ do
-        prop "is its own reverse" $
-            \x -> (transpose . transpose) x == (x :: Field)
+    describe "rot90" $ do
+        prop "is the identity when applied four times" $
+            \x -> (rot90 . rot90 . rot90 . rot90) x == (x :: Field)

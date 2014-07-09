@@ -4,18 +4,21 @@ module Game (
       Field
     , State
     , move
+    , transpose
     , compact
     , combine
     ) where
 
 import Control.Arrow (first)
 
-import Data.Array.Repa (Z (..), (:.) (..))
-import qualified Data.Array.Repa as R
+import qualified Data.Vector as V
 
 -- | Models the 2048 game field as a vector of int vectors.
-type Field = R.Array R.U R.DIM2 Value
+type Field = V.Vector (V.Vector Value)
 type Value = Int
+
+-- | A position on the game field.
+type Position = (Int, Int)
 
 -- | The state, modelled as the game field and the current score.
 type State = (Field, Int)
@@ -29,34 +32,37 @@ move :: Direction   -- ^ The direction of the move
      -> State       -- ^ The current state
      -> State       -- ^ The next state
 move U = move'
-move R =
-    first (R.computeS . R.transpose) . move' . first (R.computeS . R.transpose)
-move D =
-    first (R.computeS . mirror) . move' . first (R.computeS . mirror)
-move L =
-    first (R.computeS . R.transpose . mirror) . move' . first (R.computeS . mirror . R.transpose)
+move R = first transpose . move' . first transpose
+move D = first mirrorH . move' . first mirrorH
+move L = first (transpose . mirrorH) . move' . first (mirrorH . transpose)
 
-move' :: State -> State
-move' (field, score) = (R.computeS field', score + R.sumAllS scores) where
-    state' = R.traverse field id (combine . compact (R.extent field))
-    (field', scores) = unzip' state'
-    unzip' ar = (fsts, snds) where (fsts, snds) = (R.map fst ar, R.map snd ar)
+move' (field, score) = (field', score + V.sum scores) where
+    state' = V.map (combine . compact) field
+    (field', scores) = V.unzip state'
 
--- mirror :: (R.Source r e) => R.Array r DIM2 e -> R.Array D DIM2 e
-mirror field = R.backpermute e mir field where
-    e@(Z :. x :. _) = R.extent field
-    mir (Z :. i :. j) = (Z :. x - i - 1 :. j)
+transpose :: Field -> Field
+transpose field
+    | V.null field = field
+    | otherwise    = V.generate h (\i -> V.generate w (\j -> (field V.! j) V.! i))
+    where
+        w = V.length field
+        h = V.length (field V.! 0)
 
-compact :: R.DIM2 -> (R.DIM2 -> Value) -> R.Array R.U R.DIM2 Value
+mirrorH :: Field -> Field
+mirrorH field = V.generate w (\i -> field V.! (w - i - 1)) where
+    w = V.length field
+
+compact :: V.Vector Value -> V.Vector Value
 compact = undefined
 
-combine :: R.Array R.U R.DIM2 Value -> R.DIM2 -> (Value, Value)
+combine :: V.Vector Value -> (V.Vector Value, Int)
 combine = undefined
 
 initial :: Int      -- ^ Width of the game field
         -> Int      -- ^ Height of the game field
         -> Field    -- ^ Generated game field
-initial x y = R.computeS . R.fromFunction (Z :. x :. y) $ const 0
+initial x y = V.generate x (const V.replicate y 0)
 
 example :: Field
-example = R.fromListUnboxed (Z :. (4 :: Int) :. (6 :: Int)) [1 .. 4*6]
+example = V.fromList (map V.fromList m) where
+    m = map (\n -> [n*3 .. (n*3+4)]) [1 .. 3]

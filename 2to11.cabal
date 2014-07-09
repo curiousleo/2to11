@@ -7,7 +7,7 @@ library
     default-language:   Haskell2010
     exposed-modules:    Game
     hs-source-dirs:     library
-    build-depends:      base, vector
+    build-depends:      base, repa
     if flag(documentation)
         build-depends:  hscolour == 1.20.*
 

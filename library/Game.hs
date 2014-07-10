@@ -31,15 +31,15 @@ import Control.Monad.Trans.Class (lift)
 import qualified Data.Vector as V
 import System.Random (getStdRandom, randomR)
 
--- | Models the 2048 game field as a vector of int vectors.
+-- | Models the 2048 game board as a vector of int vectors.
 newtype Board = Board { unBoard :: V.Vector (V.Vector Value) }
     deriving Eq
 type Value = Int
 
--- | A position on the game field.
+-- | A position on the game board.
 type Position = (Int, Int)
 
--- | The state, modelled as the game field and the current score.
+-- | The state, modelled as the game board and the current score.
 type State = (Board, Int)
 
 -- | A player's move.
@@ -64,16 +64,16 @@ place (r, c) val = Board . place' . unBoard where
     place' vec = vec V.// [(r, vec V.! r V.// [(c, val)])]
 
 playComputer :: State -> MaybeT IO State
-playComputer (field, score) = do
-    field' <- placeRandom field
-    guard $ not . null . possibleMoves $ field'
-    return (field', score)
+playComputer (board, score) = do
+    board' <- placeRandom board
+    guard $ not . null . possibleMoves $ board'
+    return (board', score)
 
 placeRandom :: Board -> MaybeT IO Board
-placeRandom field = do
-    pos <- choose $ freePositions field
+placeRandom board = do
+    pos <- choose $ freePositions board
     val <- choose $ 2 : replicate 9 1
-    return $ place pos val field
+    return $ place pos val board
 
 choose :: [a] -> MaybeT IO a
 choose [] = mzero
@@ -84,12 +84,12 @@ choose xs = do
 
 -- | Can the player move in the given direction?
 canMove :: Direction -> Board -> Bool
-canMove dir field = 0 /= score || field /= field' where
-    (field', score) = move dir (field, 0)
+canMove dir board = 0 /= score || board /= board' where
+    (board', score) = move dir (board, 0)
 
 -- | Which moves are possible?
 possibleMoves :: Board -> [Direction]
-possibleMoves field = filter (flip canMove field) [R, U, L, D]
+possibleMoves board = filter (flip canMove board) [R, U, L, D]
 
 -- | Can the computer put a new number at the given position?
 free :: Position -> Board -> Bool
@@ -97,21 +97,21 @@ free (r, c) = (== 0) . (\vec -> (vec V.! r) V.! c) . unBoard
 
 -- | Which positions are still free?
 freePositions :: Board -> [Position]
-freePositions field = filter (flip free field) positions where
+freePositions board = filter (flip free board) positions where
     positions = [ (i,j) | i <- [0 .. r-1], j <- [0 .. c-1] ]
-    (r, c) = dimensions field
+    (r, c) = dimensions board
 
 move' :: State -> State
-move' (field, score) = (Board vec', score + V.sum scores) where
-    (_, w) = dimensions field
-    combined = V.map (first (restore w) . compact) (unBoard field)
+move' (board, score) = (Board vec', score + V.sum scores) where
+    (_, w) = dimensions board
+    combined = V.map (first (restore w) . compact) (unBoard board)
     (vec', scores) = V.unzip combined
 
 rot90, rot180, rot270 :: Board -> Board
-rot90 field = Board rotated where
+rot90 board = Board rotated where
     rotated = V.generate w (\i -> V.generate h (\j -> rot90' i j))
-    rot90' i j = ((unBoard field) V.! j) V.! (w-i-1)
-    (h, w) = dimensions field
+    rot90' i j = ((unBoard board) V.! j) V.! (w-i-1)
+    (h, w) = dimensions board
 rot180 = rot90 . rot90
 rot270 = rot90 . rot90 . rot90
 
@@ -131,11 +131,11 @@ restore :: Int -> V.Vector Value -> V.Vector Value
 restore n vec = V.replicate (n - V.length vec) 0 V.++ vec
 
 dimensions :: Board -> (Int, Int)
-dimensions field
+dimensions board
     | V.null vec = (0, 0)
     | otherwise  = (V.length vec, V.length (vec V.! 0))
     where
-        vec = unBoard field
+        vec = unBoard board
 
 example :: Board
 example = Board $ V.fromList (map V.fromList m) where

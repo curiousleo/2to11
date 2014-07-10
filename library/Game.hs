@@ -2,9 +2,9 @@
 -- | The game logic for 2048.
 module Game (
       Direction (..)
-    , Board (..)
+    , Board (..)        -- TODO: hide constructors
     , Position
-    , State
+    , GameState
     , Value
 
     , emptyBoard
@@ -40,7 +40,7 @@ type Value = Int
 type Position = (Int, Int)
 
 -- | The state, modelled as the game board and the current score.
-type State = (Board, Int)
+type GameState = (Board, Int)
 
 -- | A player's move.
 data Direction = R | U | L | D
@@ -48,8 +48,8 @@ data Direction = R | U | L | D
 
 -- | Player swipes right, up, left, or down.
 move :: Direction   -- ^ The direction of the move
-     -> State       -- ^ The current state
-     -> State       -- ^ The next state
+     -> GameState       -- ^ The current state
+     -> GameState       -- ^ The next state
 move R = move'
 move U = first rot90  . move' . first rot270
 move L = first rot180 . move' . first rot180
@@ -63,7 +63,7 @@ place :: Position   -- ^ The position of the newly placed number
 place (r, c) val = Board . place' . unBoard where
     place' vec = vec V.// [(r, vec V.! r V.// [(c, val)])]
 
-playComputer :: State -> MaybeT IO State
+playComputer :: GameState -> MaybeT IO GameState
 playComputer (board, score) = do
     board' <- placeRandom board
     guard $ not . null . possibleMoves $ board'
@@ -101,7 +101,7 @@ freePositions board = filter (flip free board) positions where
     positions = [ (i,j) | i <- [0 .. r-1], j <- [0 .. c-1] ]
     (r, c) = dimensions board
 
-move' :: State -> State
+move' :: GameState -> GameState
 move' (board, score) = (Board vec', score + V.sum scores) where
     (_, w) = dimensions board
     combined = V.map (first (restore w) . compact) (unBoard board)

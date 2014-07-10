@@ -6,15 +6,15 @@ import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import Game
 import AI
 
-play :: (State -> MaybeT IO State) -> IO State
+play :: (GameState -> MaybeT IO GameState) -> IO GameState
 play ai = last `liftM` do
     (Just start) <- runMaybeT initial
     unfoldr' (runMaybeT . next ai) start
 
-next :: (State -> MaybeT IO State) -> State -> MaybeT IO State
+next :: (GameState -> MaybeT IO GameState) -> GameState -> MaybeT IO GameState
 next ai s = (playComputer <=< ai) =<< (MaybeT . return . return $ s)
 
-initial :: MaybeT IO State
+initial :: MaybeT IO GameState
 initial = playComputer <=< playComputer $ (emptyBoard (4, 4), 0)
 
 main :: IO ()

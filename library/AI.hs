@@ -27,7 +27,7 @@ type Eval = ReaderT AI (StateT GameState IO)
 --
 --   Example:
 --
---   >>> eval (4, 4) baselineAI score
+--   >>> runEval (4, 4) baselineAI eval
 --   3067
 runEval :: Dimensions -> AI -> Eval a -> IO a
 runEval dims ai ev = do

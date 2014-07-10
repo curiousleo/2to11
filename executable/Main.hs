@@ -15,11 +15,11 @@ next :: (State -> MaybeT IO State) -> State -> MaybeT IO State
 next ai s = (playComputer <=< ai) =<< (MaybeT . return . return $ s)
 
 initial :: MaybeT IO State
-initial = playComputer <=< playComputer $ (emptyBoard (5, 5), 0)
+initial = playComputer <=< playComputer $ (emptyBoard (4, 4), 0)
 
 main :: IO ()
 main = do
-    let n = 100
+    let n = 1000
     scores <- mapM play $ replicate n (playAiT baselineAi)
     print $ stats (snd . unzip $ scores)
 

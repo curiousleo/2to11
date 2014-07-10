@@ -9,8 +9,8 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary, vector)
 
 instance Arbitrary Board where
     arbitrary = fmap Board $ fmap (gen l) (vector (l*l)) where
-        gen l xs = V.generate l (\i -> V.generate l (\j -> (xs !! j*5 + i)))
-        l = 5
+        gen l xs = V.generate l (\i -> V.generate l (\j -> (xs !! j*4 + i)))
+        l = 4
 
 spec :: Spec
 spec = do

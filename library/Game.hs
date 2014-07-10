@@ -66,13 +66,13 @@ place (r, c) val = Board . place' . unBoard where
 playComputer :: State -> MaybeT IO State
 playComputer (field, score) = do
     field' <- placeRandom field
-    guard $ null . possibleMoves $ field
+    guard $ not . null . possibleMoves $ field'
     return (field', score)
 
 placeRandom :: Board -> MaybeT IO Board
 placeRandom field = do
     pos <- choose $ freePositions field
-    val <- choose [1, 2]
+    val <- choose $ 2 : replicate 9 1
     return $ place pos val field
 
 choose :: [a] -> MaybeT IO a
@@ -84,8 +84,8 @@ choose xs = do
 
 -- | Can the player move in the given direction?
 canMove :: Direction -> Board -> Bool
-canMove dir field = 0 /= score where
-    score = snd $ move dir (field, 0)
+canMove dir field = 0 /= score || field /= field' where
+    (field', score) = move dir (field, 0)
 
 -- | Which moves are possible?
 possibleMoves :: Board -> [Direction]

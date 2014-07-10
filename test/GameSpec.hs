@@ -7,8 +7,8 @@ import Test.Hspec
 import Test.Hspec.QuickCheck
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary, vector)
 
-instance Arbitrary Field where
-    arbitrary = fmap Field $ fmap (gen l) (vector (l*l)) where
+instance Arbitrary Board where
+    arbitrary = fmap Board $ fmap (gen l) (vector (l*l)) where
         gen l xs = V.generate l (\i -> V.generate l (\j -> (xs !! j*5 + i)))
         l = 5
 
@@ -16,4 +16,4 @@ spec :: Spec
 spec = do
     describe "rot90" $ do
         prop "is the identity when applied four times" $
-            \x -> (rot90 . rot90 . rot90 . rot90) x == (x :: Field)
+            \x -> (rot90 . rot90 . rot90 . rot90) x == (x :: Board)

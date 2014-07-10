@@ -20,8 +20,14 @@ initial = playComputer <=< playComputer $ (emptyBoard (5, 5), 0)
 main :: IO ()
 main = do
     let n = 100
-    scores <- mapM play $ replicate n playAI'
-    print $ (fromIntegral . sum . snd . unzip $ scores) / (fromIntegral n)
+    scores <- mapM play $ replicate n (playAiT baselineAi)
+    print $ stats (snd . unzip $ scores)
+
+stats :: [Int] -> (Int, Double, Int)
+stats xs = (mini, avg, maxi) where
+    mini = minimum xs
+    avg = (fromIntegral . sum $ xs) / (fromIntegral . length $ xs)
+    maxi = maximum xs
 
 unfoldr' :: Monad m => (a -> m (Maybe a)) -> a -> m [a]
 unfoldr' f x = do

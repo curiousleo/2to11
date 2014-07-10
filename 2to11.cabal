@@ -13,7 +13,7 @@ library
         build-depends:  hscolour == 1.20.*
 
 executable 2to11
-    build-depends:      base, 2to11
+    build-depends:      base, 2to11, transformers
     default-language:   Haskell2010
     hs-source-dirs:     executable
     main-is:            Main.hs

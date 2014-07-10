@@ -3,8 +3,11 @@
 module Game (
       Direction (..)
     , Board (..)        -- TODO: hide constructors
-    , Position
+
+    , Dimensions
     , GameState
+    , Position
+    , Score
     , Value
 
     , emptyBoard
@@ -24,9 +27,11 @@ module Game (
     ) where
 
 import Control.Arrow (first)
-import Control.Monad (mzero, guard)
-import Control.Monad.Trans.Maybe (MaybeT)
+import Control.Monad (mzero)
+import Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
 import Control.Monad.Trans.Class (lift)
+
+import Data.Maybe (fromMaybe)
 
 import qualified Data.Vector as V
 import System.Random (getStdRandom, randomR)
@@ -34,13 +39,19 @@ import System.Random (getStdRandom, randomR)
 -- | Models the 2048 game board as a vector of int vectors.
 newtype Board = Board { unBoard :: V.Vector (V.Vector Value) }
     deriving Eq
+
 type Value = Int
+
+type Score = Int
 
 -- | A position on the game board.
 type Position = (Int, Int)
 
+-- | Board dimensions
+type Dimensions = Position
+
 -- | The state, modelled as the game board and the current score.
-type GameState = (Board, Int)
+type GameState = (Board, Score)
 
 -- | A player's move.
 data Direction = R | U | L | D
@@ -63,17 +74,16 @@ place :: Position   -- ^ The position of the newly placed number
 place (r, c) val = Board . place' . unBoard where
     place' vec = vec V.// [(r, vec V.! r V.// [(c, val)])]
 
-playComputer :: GameState -> MaybeT IO GameState
+playComputer :: GameState -> IO GameState
 playComputer (board, score) = do
     board' <- placeRandom board
-    guard $ not . null . possibleMoves $ board'
     return (board', score)
 
-placeRandom :: Board -> MaybeT IO Board
+placeRandom :: Board -> IO Board
 placeRandom board = do
-    pos <- choose $ freePositions board
-    val <- choose $ 2 : replicate 9 1
-    return $ place pos val board
+    pos <- runMaybeT $ choose $ freePositions board
+    (Just val) <- runMaybeT $ choose $ 2 : replicate 9 1
+    return $ fromMaybe board $ fmap (\p -> place p val board) pos
 
 choose :: [a] -> MaybeT IO a
 choose [] = mzero
@@ -143,7 +153,7 @@ example = Board $ V.fromList (map V.fromList m) where
          [0, 1, 1, 2, 3],
          [1, 1, 2, 2, 2]]
 
-emptyBoard :: Position -> Board
+emptyBoard :: Dimensions -> Board
 emptyBoard (r, c) = Board $ V.replicate r $ V.replicate c 0
 
 instance Show Board where

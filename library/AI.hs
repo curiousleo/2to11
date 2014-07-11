@@ -39,7 +39,7 @@ runEval ev st ai = runStateT (runReaderT ev ai) st
 
 -- | Run the Eval monad.
 --
---   >>> runEval eval (4, 4) baselineAI
+--   >>> runEval' eval (4, 4) baselineAI
 --   ((),(
 --        2    32     8   256
 --        4    64    32    64
@@ -58,7 +58,7 @@ eval :: Eval ()
 eval = do
     ai <- ask
     state@(board, _) <- lift get
-    if null $ possibleMoves board
+    if gameOver board
         then return ()
         else do
             state' <- lift . lift . playComputer $ playAI ai state

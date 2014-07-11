@@ -17,6 +17,7 @@ module Game (
 
     , canMove
     , possibleMoves
+    , gameOver
 
     , dimensions
 
@@ -112,6 +113,10 @@ canMove dir board = 0 /= score || board /= board' where
 -- | Which moves are possible?
 possibleMoves :: Board -> [Direction]
 possibleMoves board = filter (flip canMove board) [R, U, L, D]
+
+-- | The game is over when there is no possible move.
+gameOver :: Board -> Bool
+gameOver = null . possibleMoves
 
 -- | Can the computer put a new number at the given position?
 free :: Position -> Board -> Bool

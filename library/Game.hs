@@ -73,10 +73,10 @@ initialGameState dims = playComputer <=< playComputer $ (emptyBoard dims, 0)
 move :: Direction   -- ^ The direction of the move
      -> GameState   -- ^ The current state
      -> GameState   -- ^ The next state
-move R = move'
-move U = first rot90  . move' . first rot270
-move L = first rot180 . move' . first rot180
-move D = first rot270 . move' . first rot90
+move R = moveR
+move U = first rot90  . moveR . first rot270
+move L = first rot180 . moveR . first rot180
+move D = first rot270 . moveR . first rot90
 
 -- | Place a number on the board.
 place :: Position   -- ^ The position of the newly placed number
@@ -128,8 +128,8 @@ freePositions board = filter (flip free board) positions where
     positions = [ (i,j) | i <- [0 .. r-1], j <- [0 .. c-1] ]
     (r, c) = dimensions board
 
-move' :: GameState -> GameState
-move' (board, score) = (Board vec', score + V.sum scores) where
+moveR :: GameState -> GameState
+moveR (board, score) = (Board vec', score + V.sum scores) where
     (_, w) = dimensions board
     combined = V.map (first (restore w) . compact) (unBoard board)
     (vec', scores) = V.unzip combined

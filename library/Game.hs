@@ -36,7 +36,7 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Vector as V
 import System.Random (getStdRandom, randomR)
 
--- | Models the 2048 game board as a vector of int vectors.
+-- | Models the 2048 game board as a vector of row vectors.
 newtype Board = Board { unBoard :: V.Vector (V.Vector Value) }
     deriving Eq
 
@@ -57,23 +57,26 @@ type GameState = (Board, Score)
 data Direction = R | U | L | D
     deriving (Show, Eq)
 
--- | Player swipes right, up, left, or down.
+-- | Player swipes right, up, left, or down. This function moves the numbers in
+--   the given direction, combines them according to the game rules and records
+--   the new score.
 move :: Direction   -- ^ The direction of the move
-     -> GameState       -- ^ The current state
-     -> GameState       -- ^ The next state
+     -> GameState   -- ^ The current state
+     -> GameState   -- ^ The next state
 move R = move'
 move U = first rot90  . move' . first rot270
 move L = first rot180 . move' . first rot180
 move D = first rot270 . move' . first rot90
 
--- | Computer places a 2 or 4 on a free space.
+-- | Place a number on the board.
 place :: Position   -- ^ The position of the newly placed number
       -> Value      -- ^ What value to place
-      -> Board      -- ^ The current state
-      -> Board      -- ^ The next state
+      -> Board      -- ^ The current board
+      -> Board      -- ^ The board after placing the number
 place (r, c) val = Board . place' . unBoard where
     place' vec = vec V.// [(r, vec V.! r V.// [(c, val)])]
 
+-- | Computer places a 2 or 4 on a free space.
 playComputer :: GameState -> IO GameState
 playComputer (board, score) = do
     board' <- placeRandom board
@@ -140,7 +143,11 @@ compact = first (V.fromList . dropWhile (== 0)) . V.foldr f ([], 0) where
 restore :: Int -> V.Vector Value -> V.Vector Value
 restore n vec = V.replicate (n - V.length vec) 0 V.++ vec
 
-dimensions :: Board -> (Int, Int)
+-- | Get a board's dimensions.
+--
+--   >>> dimensions (emptyBoard (4,4))
+--   (4,4)
+dimensions :: Board -> Dimensions
 dimensions board
     | V.null vec = (0, 0)
     | otherwise  = (V.length vec, V.length (vec V.! 0))
@@ -153,6 +160,7 @@ example = Board $ V.fromList (map V.fromList m) where
          [0, 1, 1, 2, 3],
          [1, 1, 2, 2, 2]]
 
+-- | Generate an empty board with the given dimensions.
 emptyBoard :: Dimensions -> Board
 emptyBoard (r, c) = Board $ V.replicate r $ V.replicate c 0
 

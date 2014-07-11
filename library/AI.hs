@@ -7,6 +7,7 @@ module AI (
     , play
 
     , runEval
+    , runEval'
     , eval
     , evalRound
 
@@ -15,7 +16,7 @@ module AI (
 
 import Prelude hiding (mapM)
 
-import Control.Monad ((<=<), liftM)
+import Control.Monad (liftM)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Reader (ReaderT, runReaderT, ask)
 import Control.Monad.Trans.State (StateT, runStateT, get, put)
@@ -32,6 +33,10 @@ type AI = Board -> Direction
 -- | The evaluation monad.
 type Eval = ReaderT AI (StateT GameState IO)
 
+-- | Evaluate an AI given an initial state.
+runEval :: Eval a -> GameState -> AI -> IO (a, GameState)
+runEval ev st ai = runStateT (runReaderT ev ai) st
+
 -- | Run the Eval monad.
 --
 --   >>> runEval eval (4, 4) baselineAI
@@ -40,17 +45,13 @@ type Eval = ReaderT AI (StateT GameState IO)
 --        4    64    32    64
 --       16     8    16    32
 --        2     4     8    16,2932))
-runEval :: Eval a               -- ^ Eval monad
+runEval' :: Eval a               -- ^ Eval monad
         -> Dimensions           -- ^ Board dimensions
         -> AI                   -- ^ Move policy
         -> IO (a, GameState)    -- ^ Resulting value and game state
-runEval ev dims ai = do
-    startState <- playComputer <=< playComputer $ (emptyBoard dims, 0)
-    runEval' ev startState ai
-
--- | Evaluate an AI given a starting state.
-runEval' :: Eval a -> GameState -> AI -> IO (a, GameState)
-runEval' ev st ai = runStateT (runReaderT ev ai) st
+runEval' ev dims ai = do
+    state <- initialGameState dims
+    runEval ev state ai
 
 -- | Play a game of 2048 to the end.
 eval :: Eval ()
@@ -77,7 +78,7 @@ evalRound = do
 play :: Dimensions  -- ^ Board dimensions
      -> AI          -- ^ Move policy
      -> IO Score    -- ^ Final score
-play = liftM (liftM (snd . snd)) . runEval eval
+play = liftM (liftM (snd . snd)) . runEval' eval
 
 -- | Very simple AI player: chooses the first of Up, Right, Down that is
 --   possible (using `canMove`); otherwise plays Left.

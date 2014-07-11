@@ -11,6 +11,7 @@ module Game (
     , Value
 
     , emptyBoard
+    , initialGameState
 
     , playComputer
 
@@ -27,7 +28,7 @@ module Game (
     ) where
 
 import Control.Arrow (first)
-import Control.Monad (mzero)
+import Control.Monad ((<=<), mzero)
 import Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
 import Control.Monad.Trans.Class (lift)
 
@@ -58,6 +59,12 @@ type GameState = (Board, Score)
 -- | A player's move.
 data Direction = R | U | L | D
     deriving (Show, Eq)
+
+-- | Initialise the game state by randomly placing two numbers and setting the
+--   score to zero.
+initialGameState :: Dimensions      -- ^ Board dimensions
+                 -> IO GameState    -- ^ Initial game state
+initialGameState dims = playComputer <=< playComputer $ (emptyBoard dims, 0)
 
 -- | Player swipes right, up, left, or down. This function moves the numbers in
 --   the given direction, combines them according to the game rules and records

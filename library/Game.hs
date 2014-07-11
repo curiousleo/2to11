@@ -40,8 +40,10 @@ import System.Random (getStdRandom, randomR)
 newtype Board = Board { unBoard :: V.Vector (V.Vector Value) }
     deriving Eq
 
+-- | The type of numbers on the board.
 type Value = Int
 
+-- | The type of the game score.
 type Score = Int
 
 -- | A position on the game board.

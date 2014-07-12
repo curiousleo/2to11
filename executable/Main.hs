@@ -1,12 +1,13 @@
 module Main (main) where
 
 import AI
+import NegamaxAI
 
 main :: IO ()
 main = do
-    let n = 1000
+    let n = 100
     let dims = (4, 4)
-    scores <- mapM (play dims) $ replicate n baselineAI
+    scores <- mapM (play dims) $ replicate n $ negamaxAI utility 0
     print $ stats scores
 
 stats :: [Int] -> (Int, Double, Int)

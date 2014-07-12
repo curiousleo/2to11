@@ -1,9 +1,7 @@
 -- library/NegamaxAI.hs
 -- | A negamax AI player for 2048.
 module NegamaxAI (
-      Color (..)
-
-    , cutTree
+      cutTree
 
     , expandPlayer
     , expandComputer
@@ -17,35 +15,34 @@ module NegamaxAI (
 
 import Prelude hiding (mapM)
 
-import Control.Arrow (second)
-
 import Data.Function (on)
 import Data.List (maximumBy)
-import Data.Tree (Tree (..), unfoldTree)
+import Data.Tree (Tree (..), unfoldForest)
 import qualified Data.Vector as V
 
 import AI
 import Game
 
-type Player = Board -> [Board]
 type Heuristic = Board -> Int
-data Color = Max | Min deriving (Eq, Show)
 type GameTree = Tree GameNode
-type GameNode = (Color, Board)
+data GameNode = GameNode { lastMove :: Move, state :: Board }
 
-colorise :: Color -> Int -> Int
-colorise Max = id
-colorise Min = negate
+data Move = ComputerMove Position Value
+          | PlayerMove Direction
 
-swapColor :: Color -> Color
-swapColor Max = Min
-swapColor Min = Max
-
-gameTree :: Color -> (Player, Player) -> Board -> GameTree
-gameTree color (maxP, minP) board = unfoldTree f (color, board) where
-    f node@(c, b) = (node, [ (swapColor c, b') | b' <- moves c b ])
-    moves Max = maxP
-    moves Min = minP
+gameTree :: Board -> [GameTree]
+gameTree = unfoldForest f . expandPlayer' where
+    f node@(GameNode mv board) = (,) node $ case mv of
+        (PlayerMove _)     -> expandComputer' board
+        (ComputerMove _ _) -> expandPlayer' board
+    expandComputer' board =
+        [ computerNode board pos val | pos <- freePositions board, val <- [1, 2] ]
+    expandPlayer' board =
+        [ playerNode board dir | dir <- possibleMoves board ]
+    computerNode board pos val =
+        GameNode (ComputerMove pos val) $ place pos val board
+    playerNode board dir =
+        GameNode (PlayerMove dir) $ fst $ move dir (board, 0)
 
 cutTree :: Int -> Tree a -> Tree a
 cutTree 0 (Node label _)        = Node label []
@@ -54,18 +51,17 @@ cutTree n (Node label children) = Node label $ map (cutTree (n-1)) children
 negamaxAI :: Heuristic  -- ^ Utility function to use
           -> Int        -- ^ Depth of the negamax search
           -> AI         -- ^ Resulting AI player
-negamaxAI util depth = fst . maxSnd . map (second negamax') . expandPlayer where
-    maxSnd = maximumBy (compare `on` snd)
-    minTree = gameTree Min (expandComputer, map snd . expandPlayer)
-    negamax' = negamax util . cutTree depth . minTree
+negamaxAI util depth = direction . maximumBy (compare `on` negamax util) . map (cutTree depth) . gameTree where
+    direction (Node (GameNode (PlayerMove dir) _) _) = dir
 
-negamax :: Heuristic        -- ^ Heuristic to use
-        -> GameTree         -- ^ (Finite) game tree
+negamax :: Heuristic    -- ^ Heuristic to use
+        -> GameTree     -- ^ (Finite) game tree
         -> Int
-negamax util (Node (color, board) [])       = colorise color $ util board
-negamax util (Node _              children) = maximum $ map negamax' $ children
-    where
-        negamax' = negate . negamax util
+negamax util (Node node []      ) = util $ state node
+negamax util (Node node children) = let nextLevel = map (negamax util) children in
+    case lastMove node of
+        (PlayerMove _)     -> maximum nextLevel
+        (ComputerMove _ _) -> minimum nextLevel
 
 expandComputer :: Board -> [Board]
 expandComputer board =

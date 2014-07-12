@@ -4,9 +4,9 @@ build-type:     Simple
 cabal-version:  >= 1.18
 
 library
-    exposed-modules:    Game, AI
+    exposed-modules:    Game, AI, NegamaxAI
     hs-source-dirs:     library
-    build-depends:      base, transformers, random, vector
+    build-depends:      base, containers, random, transformers, vector
     default-language:   Haskell2010
     ghc-options:        -O2 -Wall
     if flag(documentation)
@@ -15,7 +15,7 @@ library
 executable 2to11
     main-is:            Main.hs
     hs-source-dirs:     executable
-    build-depends:      base, 2to11, transformers
+    build-depends:      2to11, base, transformers
     default-language:   Haskell2010
     ghc-options:        -O2 -Wall
 

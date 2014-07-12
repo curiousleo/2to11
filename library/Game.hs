@@ -39,8 +39,11 @@ import qualified Data.Vector as V
 import System.Random (getStdRandom, randomR)
 
 -- | Models the 2048 game board as a vector of row vectors.
-newtype Board = Board { unBoard :: V.Vector (V.Vector Value) }
+newtype Board = Board { unBoard :: V.Vector Row }
     deriving Eq
+
+-- | A row on the board is a vector of values.
+type Row = V.Vector Value
 
 -- | The type of numbers on the board.
 type Value = Int
@@ -167,12 +170,6 @@ dimensions board
     | otherwise  = (V.length vec, V.length (vec V.! 0))
     where
         vec = unBoard board
-
-example :: Board
-example = Board $ V.fromList (map V.fromList m) where
-    m = [[0, 1, 0, 1, 2],
-         [0, 1, 1, 2, 3],
-         [1, 1, 2, 2, 2]]
 
 -- | Generate an empty board with the given dimensions.
 emptyBoard :: Dimensions -> Board

@@ -1,8 +1,18 @@
 -- library/NegamaxAI.hs
 -- | A negamax AI player for 2048.
 module NegamaxAI (
-      negamaxAI
+      Color (..)
+
+    , cutTree
+
+    , expandPlayer
+    , expandComputer
+
+    , negamaxAI
+
     , utility
+
+    , gameTree
     ) where
 
 import Prelude hiding (mapM)
@@ -11,6 +21,7 @@ import Control.Arrow (second)
 
 import Data.Function (on)
 import Data.List (maximumBy)
+import Data.Tree (Tree (..), unfoldTree)
 import qualified Data.Vector as V
 
 import AI
@@ -18,21 +29,43 @@ import Game
 
 type Player = Board -> [Board]
 type Heuristic = Board -> Int
+data Color = Max | Min deriving (Eq, Show)
+type GameTree = Tree GameNode
+type GameNode = (Color, Board)
+
+colorise :: Color -> Int -> Int
+colorise Max = id
+colorise Min = negate
+
+swapColor :: Color -> Color
+swapColor Max = Min
+swapColor Min = Max
+
+gameTree :: Color -> (Player, Player) -> Board -> GameTree
+gameTree color (maxP, minP) board = unfoldTree f (color, board) where
+    f node@(c, b) = (node, [ (swapColor c, b') | b' <- moves c b ])
+    moves Max = maxP
+    moves Min = minP
+
+cutTree :: Int -> Tree a -> Tree a
+cutTree 0 (Node label _)        = Node label []
+cutTree n (Node label children) = Node label $ map (cutTree (n-1)) children
 
 negamaxAI :: Heuristic  -- ^ Utility function to use
           -> Int        -- ^ Depth of the negamax search
           -> AI         -- ^ Resulting AI player
-negamaxAI util depth = fst . maximumBy (compare `on` snd) . map (second negamax') . expandPlayer where
-    negamax' = negamax depth (expandComputer, map snd . expandPlayer) util
+negamaxAI util depth = fst . maxSnd . map (second negamax') . expandPlayer where
+    maxSnd = maximumBy (compare `on` snd)
+    minTree = gameTree Min (expandComputer, map snd . expandPlayer)
+    negamax' = negamax util . cutTree depth . minTree
 
-negamax :: Int              -- ^ Depth
-        -> (Player, Player) -- ^ Player and opponent
-        -> Heuristic        -- ^ Heuristic to use
-        -> Heuristic        -- ^ Negamax itself is a heuristic
-negamax 0 _        util state = util state
-negamax d (pl, op) util state = maximum ((:) minBound $ map negamax' $ pl state) where
-    negamax' :: Heuristic
-    negamax' = negamax (d-1) (op, pl) (negate . util)
+negamax :: Heuristic        -- ^ Heuristic to use
+        -> GameTree         -- ^ (Finite) game tree
+        -> Int
+negamax util (Node (color, board) [])       = colorise color $ util board
+negamax util (Node _              children) = maximum $ map negamax' $ children
+    where
+        negamax' = negate . negamax util
 
 expandComputer :: Board -> [Board]
 expandComputer board =
